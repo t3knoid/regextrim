@@ -13,6 +13,7 @@ namespace regextrim
         static void Main(string[] args)
         {
             string file = string.Empty;
+            string outputFile = string.Empty;
             string regexString = string.Empty;
             bool ignoreCase = false;
 
@@ -34,6 +35,11 @@ namespace regextrim
                 if (parser.Arguments.ContainsKey("ignorecase"))
                 {
                     ignoreCase = true;
+                }
+
+                if (parser.Arguments.ContainsKey("out"))
+                {
+                    outputFile = parser.Arguments["out"][0];
                 }
             }
             else
@@ -58,25 +64,58 @@ namespace regextrim
                 regexOptions = regexOptions | RegexOptions.IgnoreCase;
             }
 
-            Process(file, new Regex(regexString, regexOptions));
+            if (string.IsNullOrEmpty(outputFile))
+            {
+                Process(file, new Regex(regexString, regexOptions));
+            }
+            else
+            {
+                Process(file, new Regex(regexString, regexOptions), outputFile);
+            }
         }
         static void Usage()
         {
-            Console.WriteLine("regextrim -regex regex -file file [-ignorecase]");
+            Console.WriteLine("regextrim -regex regex -file file [-ignorecase] [-out output file]");
         }
 
         static void Process(string file, Regex regex)
         {
-            var updatedFile = Path.Combine(Path.GetDirectoryName(file), Path.GetFileNameWithoutExtension(file) + "-updated.txt");
             var fileStream = new FileStream(@file, FileMode.Open, FileAccess.Read);
-            var outputFileStream = new FileStream(updatedFile, FileMode.Create, FileAccess.ReadWrite);
+            using (var streamWriter = new StreamWriter(Console.OpenStandardOutput()))
+            {
+                streamWriter.AutoFlush = true;
+                Console.SetOut(streamWriter);
+                using (var streamReader = new StreamReader(fileStream, Encoding.UTF8))
+                {
+                    string line;
+                    while ((line = streamReader.ReadLine()) != null)
+                    {                        
+                        Match match = regex.Match(line);
+                        if (match.Length > 0)
+                        {
+                            string newString = regex.Replace(line, "");
+                            streamWriter.WriteLine(newString);
+                        }
+                        else
+                        {
+                            System.Console.WriteLine("Skipping - " + line);
+                        }
+                    }
+                }
+            }
+        }
+
+        static void Process(string file, Regex regex, string outFile)
+        {
+            var fileStream = new FileStream(@file, FileMode.Open, FileAccess.Read);
+            var outputFileStream = new FileStream(outFile, FileMode.Create, FileAccess.ReadWrite);
             using (var streamWriter = new StreamWriter(outputFileStream, Encoding.UTF8))
             {
                 using (var streamReader = new StreamReader(fileStream, Encoding.UTF8))
                 {
                     string line;
                     while ((line = streamReader.ReadLine()) != null)
-                    {                        
+                    {
                         Match match = regex.Match(line);
                         if (match.Length > 0)
                         {

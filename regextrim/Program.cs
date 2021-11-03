@@ -76,11 +76,17 @@ namespace regextrim
                 {
                     string line;
                     while ((line = streamReader.ReadLine()) != null)
-                    {
-                        System.Console.WriteLine("- " + line);
+                    {                        
                         Match match = regex.Match(line);
-                        string newString = regex.Replace(line, "");
-                        streamWriter.WriteLine(newString);
+                        if (match.Length > 0)
+                        {
+                            string newString = regex.Replace(line, "");
+                            streamWriter.WriteLine(newString);
+                        }
+                        else
+                        {
+                            System.Console.WriteLine("Skipping - " + line);
+                        }
                     }
                 }
             }
